@@ -1,0 +1,82 @@
+
+const { SinhVien, KetQua } = require('./models');
+
+async function xepHangSinhVien(req, res) {
+    try {
+        const sinhViens = await SinhVien.findAll({
+            include: [{
+                model: KetQua,
+                attributes: ['Diem']
+            }]
+        });
+        const xepHang = sinhViens.map(sinhVien => {
+            const tongDiem = sinhVien.KetQuas.reduce((acc, ketQua) => acc + ketQua.Diem, 0);
+            const diemTrungBinh = tongDiem / sinhVien.KetQuas.length;
+            let xepHang = '';
+            if (diemTrungBinh >= 8.5) {
+                xepHang = 'Giỏi';
+            } else if (diemTrungBinh >= 7 && diemTrungBinh < 8.5) {
+                xepHang = 'Khá';
+            } else if (diemTrungBinh >= 5 && diemTrungBinh < 7) {
+                xepHang = 'Trung bình';
+            } else {
+                xepHang = 'Yếu';
+            }
+            return { ...sinhVien.toJSON(), xepHang };
+        });
+        res.status(200).json({ xepHang });
+    } catch (error) {
+        res.status(500).json({ error });
+    }
+}
+
+module.exports = xepHangSinhVien;
+
+const { SinhVien, KetQua } = require('./models');
+
+async function timSinhVienTongDiemCaoNhat(req, res) {
+    try {
+        const sinhViens = await SinhVien.findAll({
+            include: [{
+                model: KetQua,
+                attributes: ['Diem']
+            }]
+        });
+        const sinhVienTongDiemCaoNhat = sinhViens.reduce((acc, sinhVien) => {
+            const tongDiem = sinhVien.KetQuas.reduce((acc, ketQua) => acc + ketQua.Diem, 0);
+            if (tongDiem > acc.tongDiem) {
+                return { sinhVien, tongDiem };
+            }
+            return acc;
+        }, { sinhVien: null, tongDiem: 0 });
+        res.status(200).json({ sinhVienTongDiemCaoNhat: sinhVienTongDiemCaoNhat.sinhVien });
+    } catch (error) {
+        res.status(500).json({ error });
+    }
+}
+
+module.exports = timSinhVienTongDiemCaoNhat;
+
+const { Lop, SinhVien } = require('./models');
+
+async function timLopNhieuSinhVienNhat(req, res) {
+    try {
+        const lops = await Lop.findAll({
+            include: [{
+                model: SinhVien,
+                attributes: ['_id']
+            }]
+        });
+        const lopNhieuSinhVienNhat = lops.reduce((acc, lop) => {
+            if (lop.SinhViens.length > acc.SinhViens.length) {
+                return lop;
+            }
+            return acc;
+        }, { SinhViens: [] });
+        res.status(200).json({ lopNhieuSinhVienNhat });
+    } catch (error) {
+        res.status(500).json({ error });
+    }
+}
+
+module.exports = timLopNhieuSinhVienNhat
